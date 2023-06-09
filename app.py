@@ -9,47 +9,46 @@ def chat():
     # print("testing")
     m = r.get("mofe")
     print(m)
+    r.set('test', 'testing')
     return jsonify(msg="hello")
 
 
-mydb = mysql.connector.connect(**config)
-mydb.close()
+@app.route('/rediss', methods=['GET', 'POST'])
+def rediss():
+    user = 'esther'
+    response = {
+        'name':'esther',
+        'age':'16',
+        'designation':'software engineer',
+        'hobbies':'sleeping'
+    }
+    r.setex(f"BV{user}", timedelta(minutes=4), value=json.dumps(response))
+    return jsonify(msg= 'Redis is saved')
 
-# specific resturant to get all their category
-@app.route('/api/merchant/category', methods=['GET'])
-@jwt_required()
-def food_category():
-    try:
-        current_restaurant = get_jwt_identity()
-        restaurant_id = current_restaurant[0]
-        mydb = mysql.connector.connect(**config)
-        my_cursor = mydb.cursor(buffered=True)
-        my_cursor.execute('SELECT cat_id, LOWER(category) FROM food_category WHERE restaurant_id =%s', [restaurant_id])
-        query = my_cursor.fetchall()      
-        if query:
-            category = []
-            for result in query:         
-                category.append({
-                    'id':result[0],
-                    'category_name'  :result[1]                
-                } )
-            my_cursor.close()
-            mydb.close()    
-            # print(type(category))
-            ca = json.dumps(category)
-            r.set("cat", ca)
-            pr= r.get("cat")
-            print(pr)
-            return jsonify(categories=pr),200      
-        else:
-            my_cursor.close()
-            mydb.close()
-            return jsonify({'categories':query}),200  
-    except Exception as e:
-        my_cursor.close()
-        mydb.close()
-        return jsonify(msg=e),403 
+
+@app.route('/retrieve', methods=['GET', 'POST'])
+def retrieve():
+        user = 'esther'
+        doja_cache = r.get(f"BV{user}")
+        if doja_cache is None:
+             return jsonify(msg = "cached expired or not cached")
+        
+        response = json.loads(doja_cache)
+
+        return jsonify(msg=response)
+
+# mydb = mysql.connector.connect(**config)
+# mydb.close()
+                
+      
+#             mydb.close()    
+#             # print(type(category))
+#             ca = json.dumps(category)
+#             r.set("cat", ca)
+#             pr= r.get("cat")
+#             print(pr)
+#             return jsonify(categories=pr),200      
     
 
 if __name__ == '__main__':
-     app.run(host='0.0.0.0', port=5000)
+     app.run(host='0.0.0.0', port=4000)
